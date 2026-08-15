@@ -63,15 +63,21 @@ window.__ModuleLoader__.load({
       'actions.logout': '退出账号授权',
       'actions.setModel': '设为当前模型',
       'actions.refresh': '刷新状态',
+      'manual.title': '完成远程授权',
+      'manual.help': '官方页面跳转到 localhost:1455 后，请复制浏览器地址栏中的完整链接并粘贴到这里。',
+      'manual.placeholder': 'http://localhost:1455/auth/callback?code=…&state=…',
+      'manual.submit': '提交回调链接',
       'current.label': 'Pi 当前模型',
       'current.empty': '尚未读取到当前模型',
       'saved.default': '已设为新会话的默认模型。',
+      'saved.callback': '回调已提交，正在验证并保存账号凭据。',
       'error.dshHttp': 'DSH 接口返回 HTTP {status}',
       'error.dshCall': 'DSH 接口调用失败',
       'error.authStatus': '授权状态返回 HTTP {status}',
       'error.logout': '退出授权返回 HTTP {status}',
       'error.capabilities': '模型能力返回 HTTP {status}',
       'error.preferences': '模型偏好保存接口返回 HTTP {status}',
+      'error.callback': '授权回调提交返回 HTTP {status}',
       'error.noDefaultModel': '当前 DSH 未暴露默认模型设置',
       'error.noSpeedSettings': '当前插件未暴露 Speed 设置，请重启 DSH 后重试',
       foot: 'OAuth 凭据与 API Key 分开保存。已加载 {codex} 个 Codex 模型和 {claude} 个 Claude 模型。',
@@ -131,15 +137,21 @@ window.__ModuleLoader__.load({
       'actions.logout': 'Sign out account',
       'actions.setModel': 'Set as current model',
       'actions.refresh': 'Refresh status',
+      'manual.title': 'Complete remote authorization',
+      'manual.help': 'When the official page redirects to localhost:1455, copy the complete URL from the browser address bar and paste it here.',
+      'manual.placeholder': 'http://localhost:1455/auth/callback?code=…&state=…',
+      'manual.submit': 'Submit callback URL',
       'current.label': 'Current Pi model',
       'current.empty': 'No current model was found',
       'saved.default': 'Set as the default model for new sessions.',
+      'saved.callback': 'Callback submitted. Validating and saving the account credential.',
       'error.dshHttp': 'DSH returned HTTP {status}',
       'error.dshCall': 'DSH request failed',
       'error.authStatus': 'Authorization status returned HTTP {status}',
       'error.logout': 'Sign-out returned HTTP {status}',
       'error.capabilities': 'Model capabilities returned HTTP {status}',
       'error.preferences': 'Model preferences returned HTTP {status}',
+      'error.callback': 'Authorization callback returned HTTP {status}',
       'error.noDefaultModel': 'This DSH instance does not expose the default model setting',
       'error.noSpeedSettings': 'This plugin instance does not expose Speed settings. Restart DSH and try again.',
       foot: 'OAuth credentials are stored separately from API keys. Loaded {codex} Codex models and {claude} Claude models.',
@@ -156,8 +168,9 @@ window.__ModuleLoader__.load({
 .dshOauthHint{margin:6px 2px 0;color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
 .dshOauthInfo{border:1px solid var(--dsw-alias-border-l2);border-radius:11px;background:var(--dsw-alias-bg-module-platform);padding:15px 17px}.dshOauthInfo strong{display:block;margin-bottom:6px;font-size:14px}.dshOauthInfo p{margin:4px 0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}.dshOauthInfo .warn{color:var(--dsw-alias-state-warn-label)}
 .dshOauthActions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.dshOauthButton{height:36px;border:0;border-radius:18px;padding:0 16px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);cursor:pointer;font:inherit;font-size:14px}.dshOauthButton:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.dshOauthButton.secondary{border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}.dshOauthButton.secondary:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-solid)}.dshOauthButton.danger{border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-state-error-primary)}.dshOauthButton:disabled{cursor:default;opacity:.42}
+.dshOauthManual{grid-column:1/-1;border:1px solid var(--dsw-alias-state-warn-label);border-radius:11px;background:var(--dsw-alias-bg-module-platform);padding:14px 16px}.dshOauthManual strong{display:block;font-size:14px}.dshOauthManual p{margin:5px 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px}.dshOauthManualForm{display:flex;align-items:center;gap:8px}.dshOauthManualInput{min-width:0;flex:1;height:38px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);padding:0 12px;font:inherit;font-size:13px}.dshOauthManualInput:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .dshOauthCurrent{padding-top:7px;font-size:14px;line-height:22px}.dshOauthError{margin:0;color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}.dshOauthSaved{margin:0;color:var(--dsw-alias-state-success-primary);font-size:12px;line-height:18px}.dshOauthFoot{border-top:1px solid var(--dsw-alias-border-l2);margin-top:4px;padding-top:14px;color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:19px}
-@media(max-width:680px){.dshOauthHeader{flex-direction:column}.dshOauthGrid{grid-template-columns:1fr;gap:7px}.dshOauthLabel{padding-top:0}.dshOauthTabs{grid-template-columns:1fr}.dshOauthTab:not(.active){display:none}}
+@media(max-width:680px){.dshOauthHeader{flex-direction:column}.dshOauthGrid{grid-template-columns:1fr;gap:7px}.dshOauthLabel{padding-top:0}.dshOauthTabs{grid-template-columns:1fr}.dshOauthTab:not(.active){display:none}.dshOauthManual{grid-column:auto}.dshOauthManualForm{align-items:stretch;flex-direction:column}}
 `
 
     const styleId = 'dsh-oauth-models/native-settings'
@@ -221,6 +234,7 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
       const [saved, setSaved] = useState('')
+      const [manualInputs, setManualInputs] = useState({})
       const refreshing = useRef(false)
 
       const refresh = useCallback(async (quiet = false) => {
@@ -276,6 +290,7 @@ window.__ModuleLoader__.load({
       const activeLocale = locale.getSnapshot().active
       const info = providerInfo(provider, t)
       const status = statuses[provider] ?? { phase: 'idle' }
+      const manualInput = manualInputs[provider] ?? ''
       const models = groups[provider]?.models ?? []
       const model = selected[provider] ?? ''
       const modelInfo = models.find(item => item.id === model)
@@ -333,6 +348,31 @@ window.__ModuleLoader__.load({
           const response = await fetch(`/oauth-models/logout?provider=${encodeURIComponent(provider)}&lang=${activeLocale}`, { method: 'POST' })
           if (!response.ok) throw new Error(t('error.logout', { status: response.status }))
           await refresh()
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      async function completeRemoteAuthorization(event) {
+        event.preventDefault()
+        const callback = manualInput.trim()
+        if (!callback) return
+        setBusy(true)
+        setError('')
+        setSaved('')
+        try {
+          const response = await fetch('/oauth-models/complete', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ provider, callback }),
+          })
+          const result = await response.json().catch(() => ({}))
+          if (!response.ok) throw new Error(result.message ?? t('error.callback', { status: response.status }))
+          setManualInputs(previous => ({ ...previous, [provider]: '' }))
+          setSaved(t('saved.callback'))
+          window.setTimeout(() => void refresh(true), 1000)
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : String(cause))
         } finally {
@@ -488,6 +528,29 @@ window.__ModuleLoader__.load({
             }, t('actions.setModel')),
             h('button', { type: 'button', className: 'dshOauthButton secondary', disabled: busy, onClick: () => void refresh() }, t('actions.refresh')),
           ),
+          status.manualInputRequired
+            ? h('div', { className: 'dshOauthManual' },
+                h('strong', null, t('manual.title')),
+                h('p', null, t('manual.help')),
+                h('form', { className: 'dshOauthManualForm', onSubmit: completeRemoteAuthorization },
+                  h('input', {
+                    className: 'dshOauthManualInput',
+                    type: 'text',
+                    value: manualInput,
+                    placeholder: t('manual.placeholder'),
+                    autoComplete: 'off',
+                    spellCheck: false,
+                    'aria-label': t('manual.title'),
+                    onChange: event => setManualInputs(previous => ({ ...previous, [provider]: event.target.value })),
+                  }),
+                  h('button', {
+                    type: 'submit',
+                    className: 'dshOauthButton',
+                    disabled: busy || manualInput.trim().length === 0,
+                  }, t('manual.submit')),
+                ),
+              )
+            : null,
           h('div', { className: 'dshOauthLabel' }, t('current.label')),
           h('div', { className: 'dshOauthCurrent' }, currentText),
         ),

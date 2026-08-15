@@ -44,6 +44,9 @@ test('registers balanced dictionaries and renders both languages', async () => {
     querySelector: () => ({}),
   }
   const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
+  assert.match(source, /Complete remote authorization/u)
+  assert.match(source, /\/oauth-models\/complete/u)
+  assert.match(source, /localhost:1455\/auth\/callback/u)
   runInNewContext(source, { window, document, crypto: { randomUUID }, fetch, Intl, URL, console })
   const plugin = definition.factory(id => {
     if (id === 'react') return React

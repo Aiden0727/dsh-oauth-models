@@ -10,6 +10,7 @@ Community OAuth model providers for [DeepSeek Harness](https://github.com/deepse
 
 - Authorize OpenAI Codex with a ChatGPT Plus/Pro account.
 - Authorize Anthropic with a Claude Pro/Max account.
+- Complete remote OAuth by pasting the final localhost callback URL back into DSH.
 - Manage authorization, model selection, reasoning effort and speed inside the native DSH Settings panel.
 - Switch the authorization page between English and Simplified Chinese.
 - Show only the reasoning efforts supported by the selected model, including Off, Minimal, Low, Medium, High, Extra High and Max where available.
@@ -31,12 +32,16 @@ cd dsh-oauth-models
 npm ci --registry=https://registry.npmjs.org/
 npm run verify
 npm pack
-dsh plugin --profile web add ./dsh-oauth-models-0.6.2.tgz
+dsh plugin --profile web add ./dsh-oauth-models-0.6.3.tgz
 ```
 
 The package produced by `npm pack` is a local installation artifact. `*.tgz` files are ignored by Git and are not published in this repository.
 
 Restart `dsh web` after installation. Open **Settings → Account authorization**, choose OpenAI Codex or Anthropic, select a model, and start the account authorization flow. Once authorization succeeds, the provider becomes available in the DSH model selector.
+
+### Remote browser callback
+
+When DSH runs on another machine, the official provider may finish by redirecting the browser to a URL such as `http://localhost:1455/auth/callback?...`. The browser cannot reach the callback listener on the remote DSH host and may show a connection error. Copy the complete URL from the browser address bar, return to **Account authorization**, paste it into **Complete remote authorization**, and submit it. Pi validates the OAuth state and PKCE exchange before saving the credential on the DSH host. Do not copy credential files between machines.
 
 The standalone fallback page remains available at:
 

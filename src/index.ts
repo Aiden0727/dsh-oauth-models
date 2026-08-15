@@ -47,6 +47,65 @@ type LoginPhase = 'idle' | 'starting' | 'waiting' | 'authorized' | 'error'
 interface LoginStatus {
   phase: LoginPhase
   message: string
+  manualInputRequired?: boolean
+}
+
+type ManualCodePrompt = Extract<AuthPrompt, { type: 'manual_code' }>
+
+interface PendingManualInput {
+  message: string
+  placeholder?: string
+  resolve: (value: string) => void
+  reject: (error: Error) => void
+}
+
+export class ManualAuthInputBroker {
+  private readonly pending = new Map<string, PendingManualInput>()
+
+  describe(provider: string): Pick<PendingManualInput, 'message' | 'placeholder'> | undefined {
+    const current = this.pending.get(provider)
+    return current === undefined
+      ? undefined
+      : { message: current.message, ...(current.placeholder === undefined ? {} : { placeholder: current.placeholder }) }
+  }
+
+  wait(provider: string, prompt: ManualCodePrompt): Promise<string> {
+    if (this.pending.has(provider)) return Promise.reject(new Error(`${provider} 已在等待授权回调`))
+    return new Promise((resolve, reject) => {
+      let settled = false
+      const finish = (action: () => void): void => {
+        if (settled) return
+        settled = true
+        prompt.signal?.removeEventListener('abort', abort)
+        this.pending.delete(provider)
+        action()
+      }
+      const abort = (): void => finish(() => reject(new Error('授权输入已结束')))
+      if (prompt.signal?.aborted) {
+        abort()
+        return
+      }
+      this.pending.set(provider, {
+        message: prompt.message,
+        ...(prompt.placeholder === undefined ? {} : { placeholder: prompt.placeholder }),
+        resolve: value => finish(() => resolve(value)),
+        reject: error => finish(() => reject(error)),
+      })
+      prompt.signal?.addEventListener('abort', abort, { once: true })
+    })
+  }
+
+  submit(provider: string, input: string): void {
+    const current = this.pending.get(provider)
+    if (current === undefined) throw new Error(`${provider} 当前没有等待中的授权回调`)
+    const value = input.trim()
+    if (value.length === 0) throw new Error('授权回调不能为空')
+    current.resolve(value)
+  }
+
+  cancel(provider: string): void {
+    this.pending.get(provider)?.reject(new Error('授权流程已取消'))
+  }
 }
 
 type LocaleId = 'zh' | 'en'
@@ -212,17 +271,6 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
   return value as Record<string, unknown>
 }
 
-function pendingPrompt(prompt: AuthPrompt): Promise<string> {
-  return new Promise((_resolve, reject) => {
-    const signal = prompt.signal
-    if (signal?.aborted) {
-      reject(new Error('授权输入已结束'))
-      return
-    }
-    signal?.addEventListener('abort', () => reject(new Error('授权输入已结束')), { once: true })
-  })
-}
-
 function apiKeyRequestProvider<TApi extends Api>(provider: Provider<TApi>): Provider<TApi> {
   return {
     ...provider,
@@ -322,6 +370,7 @@ class OAuthController {
   readonly models: Models
   readonly status = new Map<OAuthProviderId, LoginStatus>()
   readonly active = new Set<OAuthProviderId>()
+  readonly manualInputs = new ManualAuthInputBroker()
 
   constructor(path: string) {
     this.store = new FileCredentialStore(path)
@@ -334,7 +383,12 @@ class OAuthController {
   async describe(provider: OAuthProviderId): Promise<LoginStatus & { expires?: number }> {
     const credential = await this.store.read(provider)
     const current = this.status.get(provider)
-    if (this.active.has(provider)) return current ?? { phase: 'starting', message: '正在启动官方授权…' }
+    if (this.active.has(provider)) {
+      return {
+        ...(current ?? { phase: 'starting', message: '正在启动官方授权…' }),
+        ...(this.manualInputs.describe(provider) === undefined ? {} : { manualInputRequired: true }),
+      }
+    }
     if (credential?.type === 'oauth') {
       return {
         phase: 'authorized',
@@ -357,9 +411,9 @@ class OAuthController {
     this.active.add(provider)
     this.status.set(provider, { phase: 'starting', message: '正在启动官方授权…' })
     return this.models.login(provider, 'oauth', {
-      async prompt(prompt) {
+      prompt: async prompt => {
         if (prompt.type === 'select') return 'browser'
-        if (prompt.type === 'manual_code') return pendingPrompt(prompt)
+        if (prompt.type === 'manual_code') return this.manualInputs.wait(provider, prompt)
         throw new Error(`当前授权页面不支持交互类型：${prompt.type}`)
       },
       notify: (event) => {
@@ -382,8 +436,14 @@ class OAuthController {
   }
 
   async logout(provider: OAuthProviderId): Promise<void> {
+    this.manualInputs.cancel(provider)
     await this.models.logout(provider)
     this.status.set(provider, { phase: 'idle', message: '已退出账号授权' })
+  }
+
+  submitManualInput(provider: OAuthProviderId, input: string): void {
+    this.manualInputs.submit(provider, input)
+    this.status.set(provider, { phase: 'waiting', message: '正在验证授权回调…' })
   }
 }
 
@@ -466,6 +526,24 @@ async function status(controller: OAuthController, req: IncomingMessage, res: Se
     await controller.describe(provider),
   ])))
   json(res, 200, values)
+}
+
+async function completeAuthorization(controller: OAuthController, req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!isTrustedLocalRequest(req)) return forbidden(res)
+  if (req.method !== 'POST') return methodNotAllowed(res, 'POST')
+  try {
+    const body = await readJsonBody(req)
+    const provider = typeof body.provider === 'string' ? body.provider : null
+    const callback = typeof body.callback === 'string' ? body.callback : null
+    if (!isOAuthProvider(provider) || callback === null || callback.trim().length === 0) {
+      return json(res, 400, { error: 'invalid_authorization_callback' })
+    }
+    controller.submitManualInput(provider, callback)
+    json(res, 202, { accepted: true })
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause)
+    json(res, 409, { error: 'authorization_callback_rejected', message })
+  }
 }
 
 function capabilities(providers: readonly Provider[], req: IncomingMessage, res: ServerResponse): void {
@@ -597,6 +675,11 @@ export function apply(ctx: Context, config: Config): void {
         kind: 'exact',
         path: `${config.pagePath}/status`,
         handler: (req, res) => status(controller, req, res),
+      }),
+      ctx.webServer.register({
+        kind: 'exact',
+        path: `${config.pagePath}/complete`,
+        handler: (req, res) => completeAuthorization(controller, req, res),
       }),
       ctx.webServer.register({
         kind: 'exact',

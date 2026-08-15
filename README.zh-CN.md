@@ -10,6 +10,7 @@
 
 - 使用 ChatGPT Plus/Pro 账号授权 OpenAI Codex。
 - 使用 Claude Pro/Max 账号授权 Anthropic。
+- 支持把最终的 localhost 回调链接粘贴回 DSH，以完成远程 OAuth。
 - 在 DSH 原生设置面板中管理授权、模型、推理强度和速度。
 - 授权页面支持英文和简体中文切换。
 - 根据所选模型动态展示可用推理强度；支持时可选择关闭、极低、低、中、高、超高和最大。
@@ -31,12 +32,16 @@ cd dsh-oauth-models
 npm ci --registry=https://registry.npmjs.org/
 npm run verify
 npm pack
-dsh plugin --profile web add ./dsh-oauth-models-0.6.2.tgz
+dsh plugin --profile web add ./dsh-oauth-models-0.6.3.tgz
 ```
 
 `npm pack` 生成的压缩包只作为本地安装产物使用。Git 已忽略所有 `*.tgz` 文件，仓库不会上传这些文件。
 
 安装后重启 `dsh web`。打开 **设置 → 账号授权**，选择 OpenAI Codex 或 Anthropic，再选择模型并开始账号授权。授权成功后，对应 Provider 会出现在 DSH 模型选择器中。
+
+### 远程浏览器回调
+
+当 DSH 运行在另一台机器上时，官方 Provider 可能在授权完成后把浏览器跳转到 `http://localhost:1455/auth/callback?...`。浏览器无法访问远程 DSH 主机上的回调监听器，因此可能显示连接失败。此时复制浏览器地址栏中的完整链接，返回 **账号授权** 页面，粘贴到 **完成远程授权** 并提交。Pi 会继续验证 OAuth state 和 PKCE，再把凭据保存在 DSH 主机上；不需要在机器之间复制凭据文件。
 
 独立兜底页面仍然可用：
 
