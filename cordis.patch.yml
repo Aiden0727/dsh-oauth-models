@@ -1,0 +1,15 @@
+# 默认模型服务由插件主入口提供，以便与 OAuth 模型设置共享同一生命周期。
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  disabled: true
+
+# 注册 OAuth 模型路由、本地授权页面和 Speed 设置。
+- insert:
+    - id: dsh-oauth-models
+      name: dsh-oauth-models
+      inject:
+        - settings
+      config:
+        credentialFile: !!js dshHomePath('oauth-credentials.json')
+        pagePath: /oauth-models
+        streamIdleTimeoutMs: 300000
