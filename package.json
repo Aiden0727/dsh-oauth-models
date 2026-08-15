@@ -1,6 +1,6 @@
 {
   "name": "dsh-oauth-models",
-  "version": "0.6.3",
+  "version": "0.6.6",
   "description": "OpenAI Codex and Anthropic OAuth model providers for DeepSeek Harness",
   "type": "module",
   "main": "lib/index.js",

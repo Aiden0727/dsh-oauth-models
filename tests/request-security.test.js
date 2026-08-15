@@ -9,6 +9,8 @@ function request({
   fetchSite,
   encrypted = false,
   authenticated = false,
+  forwardedHost,
+  forwardedProto,
 } = {}) {
   const value = {
     socket: { remoteAddress, encrypted },
@@ -16,6 +18,8 @@ function request({
       host,
       ...(origin === undefined ? {} : { origin }),
       ...(fetchSite === undefined ? {} : { 'sec-fetch-site': fetchSite }),
+      ...(forwardedHost === undefined ? {} : { 'x-forwarded-host': forwardedHost }),
+      ...(forwardedProto === undefined ? {} : { 'x-forwarded-proto': forwardedProto }),
     },
   }
   if (authenticated) value[Symbol.for('dsh-auth.authenticated-request')] = true
@@ -40,6 +44,22 @@ test('accepts remote peers authenticated by dsh-auth with an exact browser origi
   assert.equal(isTrustedLocalRequest(request({
     remoteAddress: '21.91.179.20',
     host: '21.91.179.169:18888',
+    origin: 'https://aiden.woa.com',
+    fetchSite: 'same-origin',
+    authenticated: true,
+    forwardedHost: 'aiden.woa.com',
+    forwardedProto: 'https',
+  })), true)
+  assert.equal(isTrustedLocalRequest(request({
+    remoteAddress: '21.91.179.20',
+    host: 'aiden.woa.com',
+    origin: 'https://aiden.woa.com',
+    fetchSite: 'same-origin',
+    authenticated: true,
+  })), true)
+  assert.equal(isTrustedLocalRequest(request({
+    remoteAddress: '21.91.179.20',
+    host: '21.91.179.169:18888',
     origin: 'http://21.91.179.169:18888',
     fetchSite: 'same-origin',
     authenticated: true,
@@ -56,6 +76,20 @@ test('rejects remote peers, cross-site requests, and DNS rebinding hosts', () =>
   assert.equal(isTrustedLocalRequest(request({ remoteAddress: '192.168.1.10' })), false)
   assert.equal(isTrustedLocalRequest(request({ fetchSite: 'cross-site' })), false)
   assert.equal(isTrustedLocalRequest(request({ host: 'attacker.example:3080' })), false)
+  assert.equal(isTrustedLocalRequest(request({
+    host: 'localhost:3080',
+    origin: 'https://aiden.woa.com',
+    forwardedHost: 'aiden.woa.com',
+    forwardedProto: 'https',
+  })), false)
+  assert.equal(isTrustedLocalRequest(request({
+    remoteAddress: '21.91.179.20',
+    host: '21.91.179.169:18888',
+    origin: 'https://aiden.woa.com',
+    authenticated: true,
+    forwardedHost: 'aiden.woa.com',
+    forwardedProto: 'ftp',
+  })), false)
   assert.equal(isTrustedLocalRequest(request({
     host: 'localhost:3080',
     origin: 'http://localhost:9999',

@@ -32,7 +32,7 @@ cd dsh-oauth-models
 npm ci --registry=https://registry.npmjs.org/
 npm run verify
 npm pack
-dsh plugin --profile web add ./dsh-oauth-models-0.6.3.tgz
+dsh plugin --profile web add ./dsh-oauth-models-0.6.6.tgz
 ```
 
 `npm pack` 生成的压缩包只作为本地安装产物使用。Git 已忽略所有 `*.tgz` 文件，仓库不会上传这些文件。

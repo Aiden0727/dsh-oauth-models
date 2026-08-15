@@ -27,7 +27,31 @@ function isLoopbackHost(rawHost: string): boolean {
   }
 }
 
-function hasExactOrigin(req: IncomingMessage, rawHost: string, rawOrigin: string): boolean {
+function firstForwardedValue(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  const first = raw?.split(',', 1)[0]?.trim()
+  return first === '' ? undefined : first
+}
+
+function effectiveHost(req: IncomingMessage, authenticatedByHost: boolean): string | undefined {
+  if (!authenticatedByHost || req.headers['x-forwarded-host'] === undefined) return req.headers.host
+  return firstForwardedValue(req.headers['x-forwarded-host'])
+}
+
+function effectiveProtocol(req: IncomingMessage, authenticatedByHost: boolean): 'http' | 'https' | undefined {
+  if ((req.socket as IncomingMessage['socket'] & { encrypted?: boolean }).encrypted === true) return 'https'
+  if (!authenticatedByHost) return 'http'
+  if (req.headers['x-forwarded-proto'] === undefined) return undefined
+  const forwarded = firstForwardedValue(req.headers['x-forwarded-proto'])?.toLowerCase()
+  return forwarded === 'http' || forwarded === 'https' ? forwarded : undefined
+}
+
+function hasExactOrigin(
+  req: IncomingMessage,
+  rawHost: string,
+  rawOrigin: string,
+  authenticatedByHost: boolean,
+): boolean {
   try {
     const origin = new URL(rawOrigin)
     if (
@@ -37,8 +61,11 @@ function hasExactOrigin(req: IncomingMessage, rawHost: string, rawOrigin: string
       || origin.search !== ''
       || origin.hash !== ''
     ) return false
-    const encrypted = (req.socket as IncomingMessage['socket'] & { encrypted?: boolean }).encrypted === true
-    return origin.origin === new URL(`${encrypted ? 'https' : 'http'}://${rawHost}`).origin
+    const protocol = effectiveProtocol(req, authenticatedByHost)
+    if (protocol !== undefined) return origin.origin === new URL(`${protocol}://${rawHost}`).origin
+    if (!authenticatedByHost || req.headers['x-forwarded-proto'] !== undefined) return false
+    const expectedHost = new URL(`http://${rawHost}`).host
+    return (origin.protocol === 'http:' || origin.protocol === 'https:') && origin.host === expectedHost
   } catch {
     return false
   }
@@ -53,9 +80,9 @@ export function isTrustedLocalRequest(req: IncomingMessage): boolean {
     && remote !== '::1'
     && remote !== '::ffff:127.0.0.1') return false
   if (req.headers['sec-fetch-site'] === 'cross-site') return false
-  const host = req.headers.host
+  const host = effectiveHost(req, authenticatedByHost)
   if (typeof host !== 'string' || (!authenticatedByHost && !isLoopbackHost(host))) return false
   const origin = req.headers.origin
   if (origin === undefined) return true
-  return typeof origin === 'string' && hasExactOrigin(req, host, origin)
+  return typeof origin === 'string' && hasExactOrigin(req, host, origin, authenticatedByHost)
 }
